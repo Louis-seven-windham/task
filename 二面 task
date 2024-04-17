@@ -1,0 +1,264 @@
+# 1.任务1：识别圆圈
+#方法步骤：1.高斯滤波去噪（以便于轮廓检测 ） 2.图片二值化（先进行图片灰度化处理） 3.开运算（使二进制化后的图片更平滑）  4.查找并绘制轮廓
+
+import cv2
+import numpy as np
+
+img = cv2.imread('./task1.png')
+cv2.imshow('img',img)
+
+dst = cv2.GaussianBlur(img,(5,5),sigmaX=1)
+
+gray = cv2.cvtColor(dst,cv2.COLOR_BGR2GRAY)
+thresh,binary = cv2.threshold(gray,130,255,cv2.THRESH_BINARY)
+
+contours,hierarchy = cv2.findContours(binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+img_copy = img.copy()
+cv2.drawContours(img_copy,contours,7,(0,255,255),-1)
+cv2.drawContours(img_copy,contours,8,(0,255,255),-1)
+cv2.drawContours(img_copy,contours,14,(0,255,255),-1)
+cv2.drawContours(img_copy,contours,15,(0,255,255),-1)
+
+cv2.imshow('img_copy',img_copy)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+# 2.任务2：识别中间方块
+#方法步骤：1.高斯滤波去噪 2.图片二值化 3.开运算  4.查找并绘制轮廓 5.最大外接矩形（直接绘制的轮廓过于复杂）
+
+import cv2
+import numpy as np
+
+img = cv2.imread('./task2.png')
+cv2.imshow('img',img)
+
+gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+thresh,binary = cv2.threshold(gray,110,255,cv2.THRESH_BINARY)
+
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+dst1 = cv2.morphologyEx(binary,cv2.MORPH_OPEN,kernel,iterations=3)
+
+contours,hierarchy = cv2.findContours(dst1,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+x,y,w,h = cv2.boundingRect(contours[2])
+
+img_copy = img.copy()
+cv2.rectangle(img_copy,(x,y),(x+w,y+h),(0,0,255),3)
+
+cv2.imshow('img_copy',img_copy)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+# 3.任务3：识别红色物体
+#方法步骤：1.颜色空间转换 2.筛选阈值合适的区域 3.颜色提取 4.开运算（去除干扰的噪点） 5.查找和绘制轮廓 6.最小外接矩形绘制
+
+import cv2
+import numpy as np
+
+img = cv2.imread('./task3.png')
+cv2.imshow('img',img)
+
+HSV = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+
+lower_red1 = np.array([0,50,50])
+upper_red1 = np.array([10,255,255])
+lower_red2 = np.array([170,50,50])
+upper_red2 = np.array([180,255,255])
+
+
+mask1 = cv2.inRange(HSV,lower_red1,upper_red1)
+mask2 = cv2.inRange(HSV,lower_red2,upper_red2)
+
+mask = cv2.bitwise_or(mask1,mask2)
+
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+dst = cv2.morphologyEx(mask,cv2.MORPH_OPEN,kernel,iterations=3)
+
+contours,hierarchy = cv2.findContours(dst,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+rect = cv2.minAreaRect(contours[0])
+box = cv2.boxPoints(rect)
+box = np.round(box).astype('int64')
+
+img_copy = img.copy()
+cv2.drawContours(img_copy,[box],0,(0,255,0),2)
+
+cv2.imshow('img_copy',img_copy)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+# 各个任务的个人思路
+
+# 1.任务1
+import cv2
+import numpy as np
+
+img = cv2.imread('./task1.png')
+cv2.imshow('img',img)
+
+#查看原图是否是三维图，即是否有多个颜色通道
+print(img.shape)
+
+#高斯滤波去噪
+dst = cv2.GaussianBlur(img,(5,5),sigmaX=1)
+
+#查看效果
+cv2.imshow('dst',dst)
+
+#二值化（为了查找的精确性）
+gray = cv2.cvtColor(dst,cv2.COLOR_BGR2GRAY)
+thresh,binary = cv2.threshold(gray,130,255,cv2.THRESH_BINARY)
+
+#查看效果，调整阈值
+cv2.imshow('binary',binary)
+
+#查找轮廓
+contours,hierarchy = cv2.findContours(binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+#为了保持原图不变，在复印件上进行绘制
+img_copy = img.copy()
+
+#绘制总体轮廓
+cv2.drawContours(img_copy,contours,-1,(0,255,255),2)
+
+#查看总体轮廓，找出需要的轮廓索引
+cv2.imshow('img_copy',img_copy)
+
+#为了保持原图不变，在复印件上进行绘制
+img_copy1 = img.copy()
+
+#挑出要识别的四个圆的轮廓索引进行轮廓绘制
+cv2.drawContours(img_copy1,contours,7,(0,255,255),-1)
+cv2.drawContours(img_copy1,contours,8,(0,255,255),-1)
+cv2.drawContours(img_copy1,contours,14,(0,255,255),-1)
+cv2.drawContours(img_copy1,contours,15,(0,255,255),-1)
+
+cv2.imshow('img_copy1',img_copy1)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+# 2.任务2
+import cv2
+import numpy as np
+
+img = cv2.imread('./task2.png')
+cv2.imshow('img',img)
+
+#查看原图是否是三维图，即是否有多个颜色通道
+print(img.shape)
+
+#二值化（为了查找的精确性）
+gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+thresh,binary = cv2.threshold(gray,110,255,cv2.THRESH_BINARY)
+
+#查看效果，调整阈值
+cv2.imshow('binary',binary)
+
+#开运算可以使生成的黑白图片的边缘更顺滑，使后面呈现的轮廓更加简单
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+dst = cv2.morphologyEx(binary,cv2.MORPH_OPEN,kernel,iterations=3)
+
+#查看效果，调整iterations值或者卷积核大小
+cv2.imshow('dst',dst)
+
+#查找轮廓
+contours,hierarchy = cv2.findContours(dst,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+#为了保持原图不变，在复印件上进行绘制
+img_copy = img.copy()
+
+#绘制总体轮廓
+cv2.drawContours(img_copy,contours,-1,(0,0,255),2)
+
+#查看总体轮廓，找出需要的轮廓索引
+cv2.imshow('img_copy',img_copy)
+
+#最大外接矩形
+x,y,w,h = cv2.boundingRect(contours[2])
+
+img_copy1 = img.copy()
+
+#因为得到的不是轮廓的所有坐标，所以没有必要用contours，直接用rectangle就行
+cv2.rectangle(img_copy1,(x,y),(x+w,y+h),(0,0,255),3)
+
+cv2.imshow('img_copy1',img_copy1)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+# 3.任务3
+import cv2
+import numpy as np
+
+img = cv2.imread('./task3.png')
+cv2.imshow('img',img)
+
+#查看原图是否是三维图，即是否有多个颜色通道
+print(img.shape)
+
+#颜色空间转换，便于Opencv颜色提取
+HSV = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+cv2.imshow('HSV',HSV)
+
+#确定第一个红色阈值范围
+lower_red1 = np.array([0,50,50])
+upper_red1 = np.array([10,255,255])
+
+#确定第二个红色阈值范围
+lower_red2 = np.array([170,50,50])
+upper_red2 = np.array([180,255,255])
+
+#进行红色的提取
+mask1 = cv2.inRange(HSV,lower_red1,upper_red1)
+mask2 = cv2.inRange(HSV,lower_red2,upper_red2)
+
+#合并两个红色范围的掩码
+mask = cv2.bitwise_or(mask1,mask2)
+
+#查看效果
+cv2.imshow('mask',mask)
+
+#开运算：可以使生成的黑白图片的边缘更顺滑，使后面呈现的轮廓更加简单
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+dst = cv2.morphologyEx(mask,cv2.MORPH_OPEN,kernel,iterations=3)
+
+#查看效果，调整iterations值或者卷积核大小
+cv2.imshow('dst',dst)
+
+#查找轮廓
+contours,hierarchy = cv2.findContours(dst,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+#为了保持原图不变，在复印件上进行绘制
+img_copy = img.copy()
+
+#绘制总体轮廓
+cv2.drawContours(img_copy,contours,-1,(0,255,0),2)
+
+#查看总体轮廓，找出需要的轮廓索引
+cv2.imshow('img_copy',img_copy)
+
+#计算最小外接矩形
+rect = cv2.minAreaRect(contours[0])
+box = cv2.boxPoints(rect)
+box = np.round(box).astype('int64')
+
+#绘制最小外接矩形
+img_copy1 = img.copy()
+cv2.drawContours(img_copy1,[box],0,(0,255,0),2)
+
+cv2.imshow('img_copy1',img_copy1)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+#写的有点多，感谢学长认真看完
